@@ -7,6 +7,9 @@ import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 
+import nltk
+nltk.download('punkt_tab')
+
 # --- KONFIGURASI NLTK KHUSUS CLOUD ---
 # Buat folder lokal untuk menyimpan data NLTK
 nltk_data_dir = os.path.join(os.getcwd(), "nltk_data")
