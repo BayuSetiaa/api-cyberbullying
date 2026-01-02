@@ -2,11 +2,36 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import joblib
 import re
+import os # <-- Tambahkan import os
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 
-# --- 1. Inisialisasi App & Download Resource NLTK ---
+# --- KONFIGURASI NLTK KHUSUS CLOUD ---
+# Buat folder lokal untuk menyimpan data NLTK
+nltk_data_dir = os.path.join(os.getcwd(), "nltk_data")
+if not os.path.exists(nltk_data_dir):
+    os.makedirs(nltk_data_dir, exist_ok=True)
+
+# Beritahu NLTK untuk mencari data di folder ini
+nltk.data.path.append(nltk_data_dir)
+
+# Download data ke folder tersebut jika belum ada
+try:
+    nltk.data.find('tokenizers/punkt', paths=[nltk_data_dir])
+except LookupError:
+    print("Downloading punkt...")
+    nltk.download('punkt', download_dir=nltk_data_dir)
+
+try:
+    nltk.data.find('corpora/stopwords', paths=[nltk_data_dir])
+except LookupError:
+    print("Downloading stopwords...")
+    nltk.download('stopwords', download_dir=nltk_data_dir)
+# ------------------------------------
+
+
+# --- 1. Inisialisasi App ---
 app = FastAPI(title="API Deteksi Cyberbullying", version="1.0")
 
 # Download NLTK data saat aplikasi start (penting untuk Cloud)
