@@ -1,16 +1,17 @@
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse # <--- INI YANG KURANG TADI
 from pydantic import BaseModel
 import joblib
 import re
-import os # <-- Tambahkan import os
+import os
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 
-import nltk
-nltk.download('punkt_tab')
-
 # --- KONFIGURASI NLTK KHUSUS CLOUD ---
+# Kita download punkt_tab juga karena versi NLTK terbaru membutuhkannya
+nltk.download('punkt_tab') 
+
 # Buat folder lokal untuk menyimpan data NLTK
 nltk_data_dir = os.path.join(os.getcwd(), "nltk_data")
 if not os.path.exists(nltk_data_dir):
@@ -19,34 +20,24 @@ if not os.path.exists(nltk_data_dir):
 # Beritahu NLTK untuk mencari data di folder ini
 nltk.data.path.append(nltk_data_dir)
 
-# Download data ke folder tersebut jika belum ada
-try:
-    nltk.data.find('tokenizers/punkt', paths=[nltk_data_dir])
-except LookupError:
-    print("Downloading punkt...")
-    nltk.download('punkt', download_dir=nltk_data_dir)
+# Fungsi helper untuk download aman
+def download_nltk_data(package_name):
+    try:
+        nltk.data.find(f'tokenizers/{package_name}', paths=[nltk_data_dir])
+    except LookupError:
+        try:
+            nltk.data.find(f'corpora/{package_name}', paths=[nltk_data_dir])
+        except LookupError:
+            print(f"Downloading {package_name}...")
+            nltk.download(package_name, download_dir=nltk_data_dir)
 
-try:
-    nltk.data.find('corpora/stopwords', paths=[nltk_data_dir])
-except LookupError:
-    print("Downloading stopwords...")
-    nltk.download('stopwords', download_dir=nltk_data_dir)
+# Download resource yang dibutuhkan
+download_nltk_data('punkt')
+download_nltk_data('stopwords')
 # ------------------------------------
-
 
 # --- 1. Inisialisasi App ---
 app = FastAPI(title="API Deteksi Cyberbullying", version="1.0")
-
-# Download NLTK data saat aplikasi start (penting untuk Cloud)
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt')
-
-try:
-    nltk.data.find('corpora/stopwords')
-except LookupError:
-    nltk.download('stopwords')
 
 # --- 2. Load Model & Vectorizer ---
 try:
@@ -58,8 +49,7 @@ except Exception as e:
     model = None
     tfidf = None
 
-# --- 3. Definisi Preprocessing (HARUS SAMA dengan saat Training) ---
-# Stopwords (Gabungan Indo + Custom dari kode Anda sebelumnya)
+# --- 3. Definisi Preprocessing ---
 indo_stopwords = set(stopwords.words('indonesian'))
 custom_stopwords = {
     'yg', 'dg', 'rt', 'dgn', 'ny', 'd', 'klo', 'kalo', 'amp', 'biar',
@@ -71,77 +61,33 @@ final_stopwords = indo_stopwords.union(custom_stopwords)
 
 def clean_text_indo(text):
     text = str(text).lower()
-    text = re.sub(r'@[A-Za-z0-9_]+', '', text) # Hapus username
-    text = re.sub(r'#', '', text)              # Hapus hashtag
-    text = re.sub(r'\d+', '', text)            # Hapus angka
-    text = re.sub(r'[^\w\s]', '', text)        # Hapus simbol
+    text = re.sub(r'@[A-Za-z0-9_]+', '', text) 
+    text = re.sub(r'#', '', text)              
+    text = re.sub(r'\d+', '', text)            
+    text = re.sub(r'[^\w\s]', '', text)        
     text = text.strip()
-    text = re.sub(r'\s+', ' ', text)           # Hapus spasi ganda
+    text = re.sub(r'\s+', ' ', text)           
     
     tokens = word_tokenize(text)
     filtered = [w for w in tokens if w not in final_stopwords]
     
     return " ".join(filtered)
 
-# --- 4. Request Schema (Format data yang dikirim user) ---
-# class TextInput(BaseModel):
-#     text: str
-
-# # --- 5. Endpoint API ---
-
-# @app.get("/")
-# def home():
-#     return {"message": "API Cyberbullying Detection is Running!"}
-
-# @app.post("/predict")
-# def predict_sentiment(input_data: TextInput):
-#     if not model or not tfidf:
-#         return {"error": "Model belum dimuat dengan benar."}
-
-#     # Ambil teks dari input user
-#     raw_text = input_data.text
-    
-#     # Lakukan preprocessing
-#     clean_text = clean_text_indo(raw_text)
-    
-#     # Transformasi ke TF-IDF
-#     vectorized_text = tfidf.transform([clean_text]).toarray()
-    
-#     # Prediksi
-#     prediction = model.predict(vectorized_text)[0]
-    
-#     # Mapping hasil (Sesuaikan dengan Label Encoder Anda sebelumnya)
-#     # Contoh: Jika 0 = Non-Bullying, 1 = Bullying (Cek label_map Anda)
-#     # Asumsi umum:
-#     label_result = "Bullying" if prediction == 1 else "Non-Bullying"
-    
-#     return {
-#         "text_input": raw_text,
-#         "text_cleaned": clean_text,
-#         "prediction_label": int(prediction),
-#         "result": label_result
-#     }
-
 class TextInput(BaseModel):
     text: str
 
-# --- UPDATE DI SINI (ENDPOINT HOME) ---
+# --- 4. Endpoint ---
 
 @app.get("/", response_class=HTMLResponse)
 def home():
-    # Membaca file index.html dan menampilkannya
     try:
         with open("index.html", "r", encoding='utf-8') as f:
             return f.read()
     except FileNotFoundError:
-        return "<h1>Error: File index.html tidak ditemukan</h1>"
-
-# ---------------------------------------
+        return "<h1>Error: File index.html tidak ditemukan. Pastikan file ada di folder yang sama.</h1>"
 
 @app.post("/predict")
 def predict_sentiment(input_data: TextInput):
-    # ... (Isi fungsi ini biarkan SAMA PERSIS dengan kode sebelumnya) ...
-    # Saya tulis ulang singkatnya agar tidak bingung:
     if not model or not tfidf:
         return {"error": "Model belum dimuat."}
     
