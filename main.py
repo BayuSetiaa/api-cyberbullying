@@ -84,40 +84,76 @@ def clean_text_indo(text):
     return " ".join(filtered)
 
 # --- 4. Request Schema (Format data yang dikirim user) ---
+# class TextInput(BaseModel):
+#     text: str
+
+# # --- 5. Endpoint API ---
+
+# @app.get("/")
+# def home():
+#     return {"message": "API Cyberbullying Detection is Running!"}
+
+# @app.post("/predict")
+# def predict_sentiment(input_data: TextInput):
+#     if not model or not tfidf:
+#         return {"error": "Model belum dimuat dengan benar."}
+
+#     # Ambil teks dari input user
+#     raw_text = input_data.text
+    
+#     # Lakukan preprocessing
+#     clean_text = clean_text_indo(raw_text)
+    
+#     # Transformasi ke TF-IDF
+#     vectorized_text = tfidf.transform([clean_text]).toarray()
+    
+#     # Prediksi
+#     prediction = model.predict(vectorized_text)[0]
+    
+#     # Mapping hasil (Sesuaikan dengan Label Encoder Anda sebelumnya)
+#     # Contoh: Jika 0 = Non-Bullying, 1 = Bullying (Cek label_map Anda)
+#     # Asumsi umum:
+#     label_result = "Bullying" if prediction == 1 else "Non-Bullying"
+    
+#     return {
+#         "text_input": raw_text,
+#         "text_cleaned": clean_text,
+#         "prediction_label": int(prediction),
+#         "result": label_result
+#     }
+
 class TextInput(BaseModel):
     text: str
 
-# --- 5. Endpoint API ---
+# --- UPDATE DI SINI (ENDPOINT HOME) ---
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def home():
-    return {"message": "API Cyberbullying Detection is Running!"}
+    # Membaca file index.html dan menampilkannya
+    try:
+        with open("index.html", "r", encoding='utf-8') as f:
+            return f.read()
+    except FileNotFoundError:
+        return "<h1>Error: File index.html tidak ditemukan</h1>"
+
+# ---------------------------------------
 
 @app.post("/predict")
 def predict_sentiment(input_data: TextInput):
+    # ... (Isi fungsi ini biarkan SAMA PERSIS dengan kode sebelumnya) ...
+    # Saya tulis ulang singkatnya agar tidak bingung:
     if not model or not tfidf:
-        return {"error": "Model belum dimuat dengan benar."}
-
-    # Ambil teks dari input user
+        return {"error": "Model belum dimuat."}
+    
     raw_text = input_data.text
-    
-    # Lakukan preprocessing
     clean_text = clean_text_indo(raw_text)
-    
-    # Transformasi ke TF-IDF
     vectorized_text = tfidf.transform([clean_text]).toarray()
-    
-    # Prediksi
     prediction = model.predict(vectorized_text)[0]
     
-    # Mapping hasil (Sesuaikan dengan Label Encoder Anda sebelumnya)
-    # Contoh: Jika 0 = Non-Bullying, 1 = Bullying (Cek label_map Anda)
-    # Asumsi umum:
     label_result = "Bullying" if prediction == 1 else "Non-Bullying"
     
     return {
         "text_input": raw_text,
-        "text_cleaned": clean_text,
         "prediction_label": int(prediction),
         "result": label_result
     }
